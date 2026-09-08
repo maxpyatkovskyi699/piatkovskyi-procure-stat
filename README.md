@@ -22,7 +22,7 @@
 
 ```powershell
 # Клонування репозиторію
-git clone [https://github.com/maxpyatkovskyi699/piatkovskyi-procure-stat.git](https://github.com/maxpyatkovskyi699/piatkovskyi-procure-stat.git)
+git clone https://github.com/maxpyatkovskyi699/piatkovskyi-procure-stat.git
 cd piatkovskyi-procure-stat
 
 # Створення та активація віртуального оточення
