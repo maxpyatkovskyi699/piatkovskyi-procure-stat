@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/procure_stat/__init__.py
+src/procure_stat/cli.py
+src/procure_stat.egg-info/PKG-INFO
+src/procure_stat.egg-info/SOURCES.txt
+src/procure_stat.egg-info/dependency_links.txt
+src/procure_stat.egg-info/entry_points.txt
+src/procure_stat.egg-info/requires.txt
+src/procure_stat.egg-info/top_level.txt
