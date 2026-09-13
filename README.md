@@ -33,3 +33,6 @@ python -m venv .venv
 python -m pip install --upgrade pip
 pip install -e .
 ```
+
+<!-- Зміна 1 -->
+<!-- Зміна 2 -->
