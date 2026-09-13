@@ -5,3 +5,8 @@ def reverse_text(raw: str) -> str:
 
 def normalize_title(raw: str) -> str:
     return " ".join(raw.split()).lower()
+
+
+# Зміна B: друга нова функція (перша літера велика)
+def capitalize_text(raw: str) -> str:
+    return raw.capitalize()
