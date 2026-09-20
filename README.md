@@ -1,4 +1,4 @@
-# ProcureStat — Моніторинг публічних закупівель Prozorro
+# ProcureStat — Main Test
 
 ## Про проєкт
 
