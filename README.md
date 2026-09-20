@@ -1,4 +1,4 @@
-# ProcureStat - Feature Branch Version
+# ProcureStat - Title Normalizer Project
 
 ## Нормалізація назв (Title Normalization)
 
