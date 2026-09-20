@@ -1,4 +1,4 @@
-# ProcureStat — Моніторинг публічних закупівель Prozorro
+# ProcureStat - Main Branch Version
 
 ## Про проєкт
 
