@@ -1,5 +1,7 @@
 import json
-from legacy.loader import process_procurements
+
+from procure_stat.domain.models import Procurement  # type: ignore
+from procure_stat.services.pipeline import load_procurements  # type: ignore
 
 
 def test_legacy_loader_behavior(tmp_path):
@@ -33,11 +35,21 @@ def test_legacy_loader_behavior(tmp_path):
     file_path = tmp_path / "test_prozorro.json"
     file_path.write_text(json.dumps(test_data, ensure_ascii=False), encoding="utf-8")
 
-    result = process_procurements(str(file_path))
+    result = load_procurements(str(file_path))
 
     expected = [
-        ["закупівля комп'ютерів", "ДП Медичні закупівлі", 150000, "Комп'ютерна техніка"],
-        ["послуги з ремонту доріг", "КП Київпастранс", None, "Будівельні роботи"],
+        Procurement(
+            title="закупівля комп'ютерів",
+            company="ДП Медичні закупівлі",
+            amount=150000,
+            category="Комп'ютерна техніка",
+        ),
+        Procurement(
+            title="послуги з ремонту доріг",
+            company="КП Київпастранс",
+            amount=None,
+            category="Будівельні роботи",
+        ),
     ]
 
     assert result == expected
