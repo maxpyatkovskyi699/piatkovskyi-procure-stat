@@ -12,3 +12,5 @@ __pycache__/
 *.egg-info/
 .egg-info
 data/large.jsonl
+*.jsonl
+data/large*
