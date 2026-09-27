@@ -47,8 +47,8 @@ def transform_procurements(raw_items: Iterable[dict[str, Any]]) -> Iterator[Proc
         yield Procurement(
             title=title,
             company=item.get("company", ""),
-            amount=_parse_amount(item.get("salary")),
-            category=item.get("city", ""),
+            amount=_parse_amount(item.get("amount")),
+            category=item.get("category", ""),
         )
 
 
