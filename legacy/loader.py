@@ -27,7 +27,7 @@ def _parse_amount(raw_amount: Any) -> int:
     try:
         return int(raw_amount)
     except (ValueError, TypeError):
-        return 0
+        return None
 
 
 def read_procurements(file_path: str | PathLike) -> Iterator[dict[str, Any]]:
