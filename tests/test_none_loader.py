@@ -1,7 +1,6 @@
 import json
 
 from procure_stat.domain.models import Procurement  # type: ignore
-
 from procure_stat.services.pipeline import load_procurements  # type: ignore
 
 

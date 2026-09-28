@@ -12,4 +12,6 @@ def test_procurements_output_is_stable():
     assert rows[0].amount == 150000
 
     # Запис із нечисловою сумою ("за домовленістю" або "невідомо") перетворюється на None
-    assert any(row.amount is None for row in rows)  # Перевірка, що некоректна сума стала 0
+    assert any(
+        row.amount is None for row in rows
+    )  # Перевірка, що некоректна сума перетворюється на None

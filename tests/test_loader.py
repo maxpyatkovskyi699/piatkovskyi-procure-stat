@@ -4,7 +4,7 @@ from procure_stat.domain.models import Procurement  # type: ignore
 from procure_stat.services.pipeline import load_procurements  # type: ignore
 
 
-def test_legacy_loader_behavior(tmp_path):
+def test_load_procurements_behavior(tmp_path):
     test_data = [
         {
             "title": " Закупівля комп'ютерів ",
