@@ -11,3 +11,6 @@ __pycache__/
 .vscode/
 *.egg-info/
 .egg-info
+data/large.jsonl
+*.jsonl
+data/large*
