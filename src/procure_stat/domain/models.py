@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class Procurement:
     title: str
     company: str
-    amount: int
+    amount: int | None
     category: str
 
 
