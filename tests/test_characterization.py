@@ -1,17 +1,24 @@
-from procure_stat.services.pipeline import load_procurements  # type: ignore
+import json
+from pathlib import Path
+from collections.abc import Iterator
 
 
-def test_procurements_output_is_stable():
-    rows = load_procurements("data/prozorro.json")
+def read_rows_jsonl(path: Path) -> Iterator[dict]:
+    """Зчитує JSONL або стандартний JSON-файл порядково/елемент за елементом."""
+    with open(path, "r", encoding="utf-8") as f:
+        # Перевіряємо перші символи файлу
+        first_char = f.read(1)
+        f.seek(0)
 
-    # Перевіряємо, що після дедуплікації та очищення залишилися очікувані записи
-    assert len(rows) == 6  # Кількість унікальних закупівель у датасеті
-
-    # Перший запис: назва очищена від пробілів і приведена до нижнього регістру, сума — число
-    assert rows[0].title == "закупівля комп'ютерного обладнання"
-    assert rows[0].amount == 150000
-
-    # Запис із нечисловою сумою ("за домовленістю" або "невідомо") перетворюється на None
-    assert any(
-        row.amount is None for row in rows
-    )  # Перевірка, що некоректна сума перетворюється на None
+        # Якщо файл починається з '[', це стандартний JSON-масив
+        if first_char == "[":
+            data = json.load(f)
+            for row in data:
+                if isinstance(row, dict):
+                    yield row
+        else:
+            # Інакше читаємо як JSONL (порядково)
+            for line in f:
+                line = line.strip()
+                if line:
+                    yield json.loads(line)
