@@ -2,6 +2,7 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from itertools import islice
 
 from ..domain.models import Procurement
 from ..domain.parsing import to_procurement
@@ -88,3 +89,10 @@ def process_pipeline(path: Path) -> PipelineStats:
     collect(unique, stats)
 
     return stats
+
+
+def batched(items: Iterable[Procurement], size: int) -> Iterator[tuple[Procurement, ...]]:
+    """Розбиває потік елементів на пачки (пакети) заданого розміру."""
+    iterator = iter(items)
+    while batch := tuple(islice(iterator, size)):  # := замінює if not batch: break
+        yield batch
