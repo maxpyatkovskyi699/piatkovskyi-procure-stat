@@ -53,41 +53,38 @@ def deduplicate(items: Iterable[Procurement], stats: PipelineStats) -> Iterator[
         yield procurement
 
 
-# Агрегація та збір аналітики
-def collect_stats(items: Iterable[Procurement], stats: PipelineStats) -> Iterator[Procurement]:
-    """Підраховує категорії та фінансові метрики для збережених тендерів."""
+# Агрегація та збір аналітики (споживає конвеєр)
+def collect(items: Iterable[Procurement], stats: PipelineStats) -> None:
+    """Підраховує категорії та фінансові метрики, споживаючи увесь потік."""
     for procurement in items:
         stats.kept += 1
 
         if procurement.category:
             stats.by_category[procurement.category] += 1
 
-        if procurement.amount is not None:
-            stats.amount_count += 1
-            stats.amount_sum += procurement.amount
+        amount = procurement.amount
+        if amount is None:
+            continue
 
-            if stats.amount_min is None or procurement.amount < stats.amount_min:
-                stats.amount_min = procurement.amount
-            if stats.amount_max is None or procurement.amount > stats.amount_max:
-                stats.amount_max = procurement.amount
+        stats.amount_count += 1
+        stats.amount_sum += amount
 
-        yield procurement
+        if stats.amount_min is None or amount < stats.amount_min:
+            stats.amount_min = amount
+        if stats.amount_max is None or amount > stats.amount_max:
+            stats.amount_max = amount
 
 
-# Головний конвеєр (збір усіх даних)
-def process_pipeline(path: Path) -> tuple[list[Procurement], PipelineStats]:
-    """Збирає всі генератори в єдиний конвеєр обробки."""
+# Головний конвеєр (обробка за один прохід без завантаження списку в RAM)
+def process_pipeline(path: Path) -> PipelineStats:
+    """Збирає всі генератори та споживає потік даних за один прохід."""
     stats = PipelineStats()
 
-    # Порядкове зчитування файлу
     raw_rows = read_rows_jsonl(path)
-
-    # Послідовний запуск етапів конвеєра
     parsed = parse_all(raw_rows, stats)
     unique = deduplicate(parsed, stats)
-    analyzed = collect_stats(unique, stats)
 
-    # Матеріалізація (виконання всього конвеєра та збереження результату)
-    valid_items = list(analyzed)
+    # Проганяє всі дані через генератори та заповнює stats
+    collect(unique, stats)
 
-    return valid_items, stats
+    return stats
