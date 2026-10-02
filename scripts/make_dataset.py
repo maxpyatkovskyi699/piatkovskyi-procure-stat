@@ -1,6 +1,6 @@
 import json
-import random
 import pathlib
+import random
 
 # Фіксуємо random seed для відтворюваності результатів
 random.seed(7)
