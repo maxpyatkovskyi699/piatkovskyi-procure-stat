@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 from collections.abc import Iterator
+from pathlib import Path
 
 
 def read_rows_jsonl(path: Path) -> Iterator[dict]:

@@ -1,5 +1,5 @@
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 from procure_stat.domain.models import Procurement  # type: ignore
 from procure_stat.services.pipeline import (  # type: ignore

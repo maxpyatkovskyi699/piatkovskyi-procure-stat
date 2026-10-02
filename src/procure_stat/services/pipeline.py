@@ -1,8 +1,8 @@
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from pathlib import Path
 from itertools import islice
+from pathlib import Path
 
 from ..domain.models import Procurement
 from ..domain.parsing import to_procurement
