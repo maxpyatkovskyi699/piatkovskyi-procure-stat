@@ -8,7 +8,6 @@ class Procurement:
     amount: int | None
     category: str
 
-
-@property
-def key(self) -> tuple[str, str]:
-    return self.title, self.company
+    @property
+    def key(self) -> tuple[str, str]:
+        return self.title, self.company
