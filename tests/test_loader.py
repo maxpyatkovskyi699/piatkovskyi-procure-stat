@@ -1,10 +1,12 @@
 import json
+from pathlib import Path
 
 from procure_stat.domain.models import Procurement  # type: ignore
-from procure_stat.services.pipeline import load_procurements  # type: ignore
+from procure_stat.services.pipeline import PipelineStats, deduplicate, parse_all  # type: ignore
+from procure_stat.sources.json_file import read_rows_jsonl  # type: ignore
 
 
-def test_load_procurements_behavior(tmp_path):
+def test_load_procurements_behavior(tmp_path: Path) -> None:
     test_data = [
         {
             "title": " Закупівля комп'ютерів ",
@@ -32,10 +34,16 @@ def test_load_procurements_behavior(tmp_path):
         },
     ]
 
-    file_path = tmp_path / "test_prozorro.json"
-    file_path.write_text(json.dumps(test_data, ensure_ascii=False), encoding="utf-8")
+    file_path = tmp_path / "test_prozorro.jsonl"
 
-    result = load_procurements(str(file_path))
+    file_path.write_text(
+        "\n".join(json.dumps(item, ensure_ascii=False) for item in test_data),
+        encoding="utf-8",
+    )
+
+    stats = PipelineStats()
+
+    result = list(deduplicate(parse_all(read_rows_jsonl(file_path), stats), stats))
 
     expected = [
         Procurement(
