@@ -19,14 +19,22 @@ def parse_amount(raw: object) -> int | None:
 
 
 def to_procurement(row: dict) -> Procurement | None:
-    """Чиста функція перетворення сирого словника в об'єкт Procurement."""
-    title = normalize_title(row.get("title"))
-    if not title:
+    # Отримуємо ID (якщо є в JSON), інакше приводимо до str будь-яке числове/рядкове значення
+    tender_id = str(row.get("id") or row.get("tenderID") or "").strip()
+    title = str(row.get("title") or "").strip().lower()
+    company = str(row.get("company") or "").strip()
+    category = str(row.get("category") or "").strip()
+
+    # Обов'язкові поля для валідності
+    if not tender_id or not title or not company:
         return None
 
+    amount = parse_amount(row.get("amount"))
+
     return Procurement(
+        id=tender_id,
         title=title,
-        company=row.get("company", ""),
-        amount=parse_amount(row.get("amount")),
-        category=row.get("category", ""),
+        company=company,
+        amount=amount,
+        category=category,
     )
