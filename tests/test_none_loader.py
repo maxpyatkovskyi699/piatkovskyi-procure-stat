@@ -9,24 +9,28 @@ from procure_stat.sources.json_file import read_rows_jsonl  # type: ignore
 def test_procurements_output_is_stable(tmp_path: Path) -> None:
     test_data = [
         {
+            "id": "1",
             "title": " Закупівля комп'ютерів ",
             "company": "ДП Медичні закупівлі",
             "amount": "150000",
             "category": "Комп'ютерна техніка",
         },
         {
+            "id": "1",  # Дублікат за id
             "title": "закупівля комп'ютерів",
             "company": "ДП Медичні закупівлі",
             "amount": "150000",
             "category": "Комп'ютерна техніка",
         },
         {
-            "title": "",
+            "id": "2",
+            "title": "",  # Невалідний запис
             "company": "КП Київпастранс",
             "amount": "90000",
             "category": "Транспортні послуги",
         },
         {
+            "id": "3",
             "title": "Послуги з ремонту доріг",
             "company": "КП Київпастранс",
             "amount": "за домовленістю",
@@ -45,12 +49,14 @@ def test_procurements_output_is_stable(tmp_path: Path) -> None:
 
     expected = [
         Procurement(
+            id="1",
             title="закупівля комп'ютерів",
             company="ДП Медичні закупівлі",
             amount=150000,
             category="Комп'ютерна техніка",
         ),
         Procurement(
+            id="3",
             title="послуги з ремонту доріг",
             company="КП Київпастранс",
             amount=None,

@@ -5,7 +5,6 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
-from procure_stat.domain.parsing import to_procurement  # type: ignore
 from procure_stat.services.pipeline import (  # type: ignore
     PipelineStats,
     collect,
@@ -18,27 +17,23 @@ PATH = Path("data/large.jsonl")
 
 
 def lazy() -> int:
-    """Ледачий генераторний конвеєр (O(1) пам'яті)."""
+    """Ледачий генераторний конвеєр (потокова обробка)."""
     stats = PipelineStats()
     collect(deduplicate(parse_all(read_rows_jsonl(PATH), stats), stats), stats)
     return stats.kept
 
 
 def greedy() -> int:
-    """Жадібна обробка через матеріалізацію проміжних списків."""
-    rows = list(read_rows_jsonl(PATH))  # Всі сирі JSON-рядки в RAM
-    parsed = [to_procurement(r) for r in rows]
-    valid = [p for p in parsed if p is not None]
+    """Жадібна обробка через матеріалізацію (list) НА КОЖНОМУ ЕТАПІ того самого конвеєра."""
+    stats = PipelineStats()
 
-    seen = set()
-    unique = []
-    for p in valid:
-        key = (p.title, p.company)
-        if key not in seen:
-            seen.add(key)
-            unique.append(p)
+    # Використовуємо ті самі функції, але з матеріалізацією проміжних результатів у RAM
+    rows = list(read_rows_jsonl(PATH))
+    parsed = list(parse_all(rows, stats))
+    unique = list(deduplicate(parsed, stats))
+    collect(unique, stats)
 
-    return len(unique)
+    return stats.kept
 
 
 def main() -> None:
@@ -46,7 +41,7 @@ def main() -> None:
         print(f"Помилка: Файл {PATH} не знайдено.")
         return
 
-    print(f"{'Підхід':<25} {'Записів':<12} {'Час (с)':<10} {'Пікова пам\'ять (МБ)':<20}")
+    print(f"{'Підхід':<25} {'Записів':<12} {'Час (с)':<10} {"Пікова пам'ять (МБ)":<20}")
     print("-" * 70)
 
     for name, fn in (("генераторний конвеєр", lazy), ("проміжні списки", greedy)):

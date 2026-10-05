@@ -17,6 +17,7 @@ def test_invalid_rows_are_counted() -> None:
     rows = [
         # Валідний запис
         {
+            "id": "1",
             "title": "Закупівля ПК",
             "company": "ТОВ Тест",
             "amount": "1000",
@@ -24,35 +25,33 @@ def test_invalid_rows_are_counted() -> None:
         },
         # Невалідний запис (відсутній title)
         {
+            "id": "2",
             "title": "",
             "company": "ТОВ Тест 2",
             "amount": "2000",
             "category": "Комп'ютерне обладнання",
         },
     ]
-
     stats = PipelineStats()
-    # Матеріалізуємо генератор у список ОДИН раз, щоб не вичерпати його
     result = list(parse_all(rows, stats))
-
     assert len(result) == 1
     assert stats.read == 2
     assert stats.invalid == 1
 
 
 def test_deduplicate_removes_duplicates() -> None:
-    """Перевіряє фільтрацію дублікатів за ключем (title, company)."""
+    """Перевіряє фільтрацію дублікатів за id."""
     items = [
-        Procurement(title="Закупівля ПК", company="ТОВ Альфа", amount=1000, category="ІТ"),
+        Procurement(id="1", title="Закупівля ПК", company="ТОВ Альфа", amount=1000, category="ІТ"),
         Procurement(
-            title="Закупівля ПК", company="ТОВ Альфа", amount=5000, category="ІТ"
-        ),  # Дублікат
-        Procurement(title="Ремонт", company="ТОВ Бета", amount=2000, category="Будівництво"),
+            id="1", title="Закупівля ПК", company="ТОВ Альфа", amount=5000, category="ІТ"
+        ),  # Дублікат за id
+        Procurement(
+            id="2", title="Ремонт", company="ТОВ Бета", amount=2000, category="Будівництво"
+        ),
     ]
-
     stats = PipelineStats()
     result = list(deduplicate(items, stats))
-
     assert len(result) == 2
     assert stats.duplicates == 1
 
@@ -60,13 +59,11 @@ def test_deduplicate_removes_duplicates() -> None:
 def test_collect_calculates_analytics() -> None:
     """Перевіряє правильність збору аналітики та категорій."""
     items = [
-        Procurement(title="Закупівля ПК", company="ТОВ А", amount=1000, category="ІТ"),
-        Procurement(title="Сервер", company="ТОВ Б", amount=3000, category="ІТ"),
+        Procurement(id="1", title="Закупівля ПК", company="ТОВ А", amount=1000, category="ІТ"),
+        Procurement(id="2", title="Сервер", company="ТОВ Б", amount=3000, category="ІТ"),
     ]
-
     stats = PipelineStats()
     collect(items, stats)
-
     assert stats.kept == 2
     assert stats.by_category["ІТ"] == 2
     assert stats.amount_sum == 4000
@@ -77,7 +74,6 @@ def test_collect_calculates_analytics() -> None:
 
 def test_batched_splits_tail() -> None:
     """Перевіряє, що batched коректно розбиває потік та правильно залишає залишок."""
-    # Тест на послідовності із 7 елементів по 3 у пакеті: [3, 3, 1]
     result = [len(b) for b in batched(range(7), 3)]
     assert result == [3, 3, 1]
 
@@ -85,15 +81,13 @@ def test_batched_splits_tail() -> None:
 def test_full_process_pipeline_on_temp_file() -> None:
     """Інтеграційний тест для перевірки повного конвеєра process_pipeline на тимчасовому файлі."""
     jsonl_content = (
-        '{"title": "Тендер 1", "company": "Компанія A", "amount": 100, "category": "Паливо"}\n'
-        '{"title": "Тендер 1", "company": "Компанія A", "amount": 100, "category": "Паливо"}\n'
-        '{"title": "", "company": "Компанія B", "amount": 200, "category": "Паливо"}\n'
+        '{"id": "1", "title": "Тендер 1", "company": "Компанія A", "amount": 100, "category": "Паливо"}\n'
+        '{"id": "1", "title": "Тендер 1", "company": "Компанія A", "amount": 100, "category": "Паливо"}\n'
+        '{"id": "2", "title": "", "company": "Компанія B", "amount": 200, "category": "Паливо"}\n'
     )
-
     with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".jsonl", encoding="utf-8") as tmp:
         tmp.write(jsonl_content)
-        tmp_path = Path(tmp.name)
-
+    tmp_path = Path(tmp.name)
     try:
         stats = process_pipeline(tmp_path)
         assert stats.read == 3
