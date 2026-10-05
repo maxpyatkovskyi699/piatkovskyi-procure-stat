@@ -12,11 +12,8 @@ def normalize_title(raw: str | None) -> str | None:
 def parse_amount(raw: object) -> int | None:
     """Чиста функція парсингу суми закупівлі.
     Повертає None, якщо сума відсутня або не є числом."""
-    if raw is None:
-        return None
     try:
-        # Спочатку перетворюємо на float (на випадок рядків із крапкою "150.0"), потім у int
-        return int(float(str(raw).strip()))
+        return int(raw)
     except (TypeError, ValueError):
         return None
 
