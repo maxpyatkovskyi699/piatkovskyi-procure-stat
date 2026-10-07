@@ -1,3 +1,5 @@
+from typing import Any
+
 from .models import Procurement
 
 
@@ -11,14 +13,26 @@ def normalize_title(raw: str | None) -> str | None:
 
 def parse_amount(raw: object) -> int | None:
     """Чиста функція парсингу суми закупівлі.
-    Повертає None, якщо сума відсутня або не є числом."""
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
+
+    Повертає None, якщо сума відсутня або не є числом.
+    """
+    if raw is None:
         return None
 
+    # Звужуємо тип raw перед викликом int()
+    if isinstance(raw, (int, float)):
+        return int(raw)
 
-def to_procurement(row: dict) -> Procurement | None:
+    if isinstance(raw, (str, bytes)):
+        try:
+            return int(raw)
+        except ValueError:
+            return None
+
+    return None
+
+
+def to_procurement(row: dict[str, Any]) -> Procurement | None:
     # Отримуємо ID (якщо є в JSON), інакше приводимо до str будь-яке числове/рядкове значення
     tender_id = str(row.get("id") or row.get("tenderID") or "").strip()
     title = str(row.get("title") or "").strip().lower()
