@@ -33,5 +33,17 @@ pydantic-settings = "^2.2.0"
 
 [tool.mypy]
 python_version = "3.12"
+strict = true
 show_error_codes = true
 warn_unused_ignores = true
+mypy_path = "src"
+
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["pydantic_settings.*"]
+ignore_missing_imports = true
+
+[tool.pyright]
+pythonVersion = "3.12"
+extraPaths = ["src"]
