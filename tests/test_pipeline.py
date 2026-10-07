@@ -1,14 +1,14 @@
 import tempfile
 from pathlib import Path
 
-from procure_stat.domain.models import Procurement  # type: ignore
-from procure_stat.services.pipeline import (  # type: ignore
+from procure_stat.domain.models import Procurement
+from procure_stat.services.pipeline import (
     PipelineStats,
     batched,
     collect,
     deduplicate,
+    load_procurements,
     parse_all,
-    process_pipeline,
 )
 
 
@@ -89,7 +89,10 @@ def test_full_process_pipeline_on_temp_file() -> None:
         tmp.write(jsonl_content)
     tmp_path = Path(tmp.name)
     try:
-        stats = process_pipeline(tmp_path)
+        stats = PipelineStats()
+        result = load_procurements(tmp_path, stats)
+
+        assert len(result) == 1
         assert stats.read == 3
         assert stats.invalid == 1
         assert stats.duplicates == 1

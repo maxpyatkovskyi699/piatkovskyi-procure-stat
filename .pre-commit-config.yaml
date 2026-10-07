@@ -9,5 +9,5 @@ repos:
     rev: v1.11.2
     hooks:
       - id: mypy
-        additional_dependencies: [pydantic, pydantic-settings]
+        additional_dependencies: [pydantic, pydantic-settings, pytest]
         args: [--strict]
