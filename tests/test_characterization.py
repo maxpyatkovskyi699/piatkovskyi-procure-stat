@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from procure_stat.services.pipeline import PipelineStats, deduplicate, parse_all  # type: ignore
-from procure_stat.sources.json_file import read_rows_jsonl  # type: ignore
+from procure_stat.services.pipeline import PipelineStats, deduplicate, parse_all
+from procure_stat.sources.json_file import read_rows_jsonl
 
 
 def test_procurements_output_is_stable(tmp_path: Path) -> None:

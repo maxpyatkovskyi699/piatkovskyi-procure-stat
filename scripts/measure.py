@@ -4,7 +4,7 @@ from pathlib import Path
 
 # # Додаємо корінь проєкту / папку src до шляхів пошуку модулів
 # sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from procure_stat.sources.json_file import read_rows_jsonl  # type: ignore
+from procure_stat.sources.json_file import read_rows_jsonl
 
 path = Path("data/large.jsonl")
 

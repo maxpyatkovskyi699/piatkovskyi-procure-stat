@@ -5,13 +5,13 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
-from procure_stat.services.pipeline import (  # type: ignore
+from procure_stat.services.pipeline import (
     PipelineStats,
     collect,
     deduplicate,
     parse_all,
 )
-from procure_stat.sources.json_file import read_rows_jsonl  # type: ignore
+from procure_stat.sources.json_file import read_rows_jsonl
 
 PATH = Path("data/large.jsonl")
 
