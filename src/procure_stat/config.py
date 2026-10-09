@@ -1,3 +1,4 @@
+from pydantic import HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,9 +9,15 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    data_path: str = "data/procurements.jsonl"
+    # Application Settings
+    debug: bool = False
     log_level: str = "INFO"
-    high_value_threshold: int = 1_000_000
+    data_path: str = "data/procurements.jsonl"
+    high_value_threshold: float = 1_000_000.0
+
+    # Prozorro API Settings
+    prozorro_api_base_url: HttpUrl = HttpUrl("https://public-api.prozorro.gov.ua/api/2.5")
+    prozorro_timeout: int = 30
 
 
 settings = Settings()
