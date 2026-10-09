@@ -5,15 +5,15 @@ HIGH_VALUE_THRESHOLD = 1_000_000
 
 @dataclass(frozen=True, slots=True)
 class Procurement:
-    id: str
+    id: str | None
     title: str
     company: str
     amount: int | None
     category: str
 
     def __post_init__(self) -> None:
-        if not self.id.strip():
-            raise ValueError("id must not be empty")
+        if self.id is not None and not self.id.strip():
+            raise ValueError("id must not be empty string if provided")
         if not self.title.strip():
             raise ValueError("title must not be empty")
         if not self.company.strip():
@@ -25,7 +25,10 @@ class Procurement:
 
     @property
     def key(self) -> str:
-        return self.id
+        # Якщо є id — використовуємо його, інакше дедуплікуємо за сукупністю полів
+        if self.id:
+            return self.id
+        return f"{self.title}:{self.company}"
 
     @property
     def is_high_value(self) -> bool:
