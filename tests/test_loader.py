@@ -3,6 +3,7 @@ from pathlib import Path
 
 from procure_stat.domain.models import Procurement
 from procure_stat.services.pipeline import PipelineStats, load_procurements
+from procure_stat.sources.json_file import read_rows_jsonl
 
 
 def test_load_procurements_behavior(tmp_path: Path) -> None:
@@ -71,3 +72,16 @@ def test_load_procurements_behavior(tmp_path: Path) -> None:
     assert stats.invalid == 1
     assert stats.duplicates == 1
     assert stats.kept == 2
+
+
+def test_read_rows_jsonl_handles_corrupted_line(tmp_path: Path) -> None:
+    file_path = tmp_path / "corrupted.jsonl"
+    file_path.write_text(
+        '{"id": "1", "value": 100}\nNOT_A_VALID_JSON\n{"id": "2", "value": 200}\n',
+        encoding="utf-8",
+    )
+
+    rows = list(read_rows_jsonl(file_path))
+    assert len(rows) == 2
+    assert rows[0]["id"] == "1"
+    assert rows[1]["id"] == "2"

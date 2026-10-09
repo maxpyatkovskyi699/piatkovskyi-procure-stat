@@ -4,13 +4,12 @@ from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
-from typing import Any
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import ValidationError
 
 from ..domain.models import Procurement
-from ..sources.json_file import read_rows
+from ..sources.json_file import read_rows, read_rows_jsonl
 from ..sources.schemas import ProcurementIn
 
 logger = logging.getLogger(__name__)
@@ -71,7 +70,7 @@ def count_by_category(items: Iterable[Procurement]) -> Counter[str]:
     return Counter(procurement.category for procurement in items)
 
 
-def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:
+def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:  # noqa: UP047
     """Розбиває ітератор на батчі фіксованого розміру."""
     if n < 1:
         raise ValueError("n must be at least one")
@@ -105,8 +104,15 @@ def process_pipeline(rows: Iterable[dict[str, Any]], stats: PipelineStats) -> li
 
 def load_procurements(path: Path, stats: PipelineStats | None = None) -> list[Procurement]:
     """Головний сценарій завантаження, валідації та дедуплікації."""
-    if stats is None:
-        stats = PipelineStats()
+    path = Path(path)
 
-    rows = read_rows(path)
-    return process_pipeline(rows, stats)
+    # Якщо stats не передано, створюємо новий екземпляр
+    active_stats = stats if stats is not None else PipelineStats()
+
+    # Вибираємо правильний читач залежно від розширення файлу
+    if path.suffix.lower() == ".jsonl":
+        rows = read_rows_jsonl(path)
+    else:
+        rows = read_rows(path)
+
+    return process_pipeline(rows, active_stats)
