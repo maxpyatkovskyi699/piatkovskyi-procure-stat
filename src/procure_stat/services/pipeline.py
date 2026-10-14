@@ -3,14 +3,12 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from itertools import islice
-from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import ValidationError
 
 from ..domain.models import Procurement
-from ..sources.json_file import read_rows, read_rows_jsonl
-from ..sources.schemas import ProcurementIn
+from .schemas import ProcurementIn
 
 logger = logging.getLogger(__name__)
 
@@ -100,19 +98,3 @@ def process_pipeline(rows: Iterable[dict[str, Any]], stats: PipelineStats) -> li
     parsed = parse_all(rows, stats)
     deduped = deduplicate(parsed, stats)
     return collect(deduped, stats)
-
-
-def load_procurements(path: Path, stats: PipelineStats | None = None) -> list[Procurement]:
-    """Головний сценарій завантаження, валідації та дедуплікації."""
-    path = Path(path)
-
-    # Якщо stats не передано, створюємо новий екземпляр
-    active_stats = stats if stats is not None else PipelineStats()
-
-    # Вибираємо правильний читач залежно від розширення файлу
-    if path.suffix.lower() == ".jsonl":
-        rows = read_rows_jsonl(path)
-    else:
-        rows = read_rows(path)
-
-    return process_pipeline(rows, active_stats)

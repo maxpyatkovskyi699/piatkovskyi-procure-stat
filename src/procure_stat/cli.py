@@ -3,9 +3,24 @@ import time
 import tracemalloc
 from pathlib import Path
 
-from procure_stat.services.pipeline import PipelineStats
+from procure_stat.sources.jsonl import read_rows, read_rows_jsonl
+from procure_stat.services.pipeline import process_pipeline, PipelineStats, count_by_category
+from procure_stat.domain.models import Procurement
 
-from .services.pipeline import count_by_category, load_procurements
+
+def load_procurements_orchestrator(
+    path: Path, stats: PipelineStats | None = None
+) -> list[Procurement]:
+    """Визначає формат файлу, читає його та передає дані у конвеєр."""
+    path = Path(path)
+    active_stats = stats if stats is not None else PipelineStats()
+
+    if path.suffix.lower() == ".jsonl":
+        rows = read_rows_jsonl(path)
+    else:
+        rows = read_rows(path)
+
+    return process_pipeline(rows, active_stats)
 
 
 def main() -> None:
@@ -22,14 +37,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    # Запускаємо заміри часу та пам'яті
     start_time = time.perf_counter()
     tracemalloc.start()
 
     stats = PipelineStats()
-    procurements = load_procurements(args.path, stats)
+    procurements = load_procurements_orchestrator(args.path, stats)
 
-    # Фіксуємо показники
     _, peak_bytes = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     elapsed_seconds = time.perf_counter() - start_time
@@ -41,7 +54,6 @@ def main() -> None:
         print(f"Дублікатів: {stats.duplicates}")
         print(f"Залишилось: {stats.kept}")
 
-        # Статистика за сумами (якщо розраховується в stats)
         if hasattr(stats, "amount_min") and stats.amount_min is not None:
             print(
                 f"Сума закупівель (грн): min={stats.amount_min} "
