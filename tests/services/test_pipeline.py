@@ -40,7 +40,7 @@ def test_duplicates_across_sources() -> None:
 
 
 def test_invalid_amount_is_handled() -> None:
-    """Перевіряє, що некоректна сума (нечислове значення) вважається невалідним записом."""
+    """Перевіряє, що нечислова сума не відхиляє запис, а зберігає його з обробленою сумою."""
     row = dict(ROW, amount="некоректна_сума")
     stats = Pipeline([FakeSource([row])]).run()
     assert stats.kept == 1 and stats.invalid == 0
