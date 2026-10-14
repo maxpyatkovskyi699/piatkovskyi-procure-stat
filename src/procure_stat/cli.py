@@ -6,8 +6,8 @@ from pathlib import Path
 
 from .services.pipeline import Pipeline, PipelineStats
 from .services.ports import Source
-from .sources.jsonl import JsonlSource
 from .sources.csv_file import CsvSource
+from .sources.jsonl import JsonlSource
 
 FACTORIES: dict[str, Callable[[Path], Source]] = {".jsonl": JsonlSource, ".csv": CsvSource}
 
