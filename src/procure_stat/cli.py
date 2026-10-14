@@ -1,29 +1,26 @@
 import argparse
 import time
 import tracemalloc
+from collections.abc import Callable
 from pathlib import Path
 
-from procure_stat.sources.jsonl import read_rows, read_rows_jsonl
-from procure_stat.services.pipeline import process_pipeline, PipelineStats, count_by_category
-from procure_stat.domain.models import Procurement
+from .services.pipeline import Pipeline, PipelineStats
+from .services.ports import Source
+from .sources.jsonl import JsonlSource
+from .sources.csv_file import CsvSource
+
+FACTORIES: dict[str, Callable[[Path], Source]] = {".jsonl": JsonlSource, ".csv": CsvSource}
 
 
-def load_procurements_orchestrator(
-    path: Path, stats: PipelineStats | None = None
-) -> list[Procurement]:
-    """Визначає формат файлу, читає його та передає дані у конвеєр."""
-    path = Path(path)
-    active_stats = stats if stats is not None else PipelineStats()
-
-    if path.suffix.lower() == ".jsonl":
-        rows = read_rows_jsonl(path)
-    else:
-        rows = read_rows(path)
-
-    return process_pipeline(rows, active_stats)
+def build_source(path: Path) -> Source:
+    try:
+        factory = FACTORIES[path.suffix.lower()]
+    except KeyError:
+        raise SystemExit(f"unsupported file type: {path.suffix}") from None
+    return factory(path)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="procure-stat",
         description="Аналітична система моніторингу публічних закупівель Prozorro",
@@ -35,13 +32,17 @@ def main() -> None:
         action="store_true",
         help="вивести детальну статистику обробки конвеєра",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     start_time = time.perf_counter()
     tracemalloc.start()
 
-    stats = PipelineStats()
-    procurements = load_procurements_orchestrator(args.path, stats)
+    # Створюємо джерело даних та запускаємо пайплайн
+    source = build_source(args.path)
+    pipeline = Pipeline([source])
+
+    # Якщо Pipeline.run() повертає об'єкт зі статистикою та самі дані (або сутності)
+    stats: PipelineStats = pipeline.run()
 
     _, peak_bytes = tracemalloc.get_traced_memory()
     tracemalloc.stop()
@@ -60,13 +61,14 @@ def main() -> None:
                 f"max={stats.amount_max} avg={stats.amount_avg:.0f}"
             )
 
-        print("\nРозподіл за категоріями:")
-        for category, count in count_by_category(procurements).most_common():
-            print(f"  {category}: {count}")
+        if hasattr(stats, "by_source") and stats.by_source:
+            print("\nРозподіл за джерелами:")
+            for name, count in stats.by_source.items():
+                print(f"  {name}: {count}")
 
         print(f"\nЧас: {elapsed_seconds:.2f} с, пік пам'яті: {peak_mb:.1f} МБ")
     else:
-        print(f"Завантажено записів: {len(procurements)}")
+        print(f"Залишилось записів: {stats.kept}")
 
 
 if __name__ == "__main__":
