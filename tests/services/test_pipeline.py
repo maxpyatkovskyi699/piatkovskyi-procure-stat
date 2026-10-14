@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from typing import Any
+
 from procure_stat.services.pipeline import Pipeline
 
 
