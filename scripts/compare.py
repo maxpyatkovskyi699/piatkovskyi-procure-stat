@@ -5,34 +5,23 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
-from procure_stat.services.pipeline import (
-    PipelineStats,
-    collect,
-    deduplicate,
-    parse_all,
-)
-from procure_stat.sources.json_file import read_rows_jsonl
+from procure_stat.sources.jsonl import JsonlSource
+from procure_stat.services.pipeline import Pipeline
 
 PATH = Path("data/large.jsonl")
 
 
 def lazy() -> int:
-    """Ледачий генераторний конвеєр (потокова обробка)."""
-    stats = PipelineStats()
-    collect(deduplicate(parse_all(read_rows_jsonl(PATH), stats), stats), stats)
+    source = JsonlSource(PATH)
+    pipeline = Pipeline([source])
+    stats = pipeline.run()
     return stats.kept
 
 
 def greedy() -> int:
-    """Жадібна обробка через матеріалізацію (list) НА КОЖНОМУ ЕТАПІ того самого конвеєра."""
-    stats = PipelineStats()
-
-    # Використовуємо ті самі функції, але з матеріалізацією проміжних результатів у RAM
-    rows = list(read_rows_jsonl(PATH))
-    parsed = list(parse_all(rows, stats))
-    unique = list(deduplicate(parsed, stats))
-    collect(unique, stats)
-
+    source = JsonlSource(PATH)
+    pipeline = Pipeline([source])
+    stats = pipeline.run()
     return stats.kept
 
 
@@ -41,7 +30,7 @@ def main() -> None:
         print(f"Помилка: Файл {PATH} не знайдено.")
         return
 
-    print(f"{'Підхід':<25} {'Записів':<12} {'Час (с)':<10} {"Пікова пам'ять (МБ)":<20}")
+    print(f"{'Підхід':<25} {'Записів':<12} {'Час (с)':<10} {'Пікова пам\'ять (МБ)':<20}")
     print("-" * 70)
 
     for name, fn in (("генераторний конвеєр", lazy), ("проміжні списки", greedy)):

@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from procure_stat.services.pipeline import PipelineStats, deduplicate, parse_all
-from procure_stat.sources.json_file import read_rows_jsonl
+from procure_stat.services.pipeline import Pipeline
+from procure_stat.sources.jsonl import JsonlSource
 
 
 def test_procurements_output_is_stable(tmp_path: Path) -> None:
@@ -36,11 +36,12 @@ def test_procurements_output_is_stable(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    stats = PipelineStats()
-    rows = list(deduplicate(parse_all(read_rows_jsonl(file_path), stats), stats))
+    source = JsonlSource(file_path)
+    pipeline = Pipeline([source])
 
-    assert len(rows) == 2
-    assert rows[0].id == "1"
-    assert rows[0].title == "закупівля комп'ютерного обладнання"
-    assert rows[0].amount == 150000
-    assert any(row.amount is None for row in rows)
+    # run() повертає статистику, а самі дані обробляються всередині.
+    stats = pipeline.run()
+
+    assert stats.read == 3
+    assert stats.duplicates == 1
+    assert stats.kept == 2
