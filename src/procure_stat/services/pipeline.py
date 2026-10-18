@@ -3,14 +3,13 @@ from collections import Counter
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from itertools import islice
-from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import ValidationError
 
 from ..domain.models import Procurement
-from ..sources.json_file import read_rows, read_rows_jsonl
-from ..sources.schemas import ProcurementIn
+from .ports import Source
+from .schemas import ProcurementIn
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +22,10 @@ class PipelineStats:
     invalid: int = 0
     duplicates: int = 0
     kept: int = 0
+    by_source: Counter[str] = field(default_factory=Counter)
     by_category: Counter[str] = field(default_factory=Counter)
 
-    # Статистика сум закупівель для тестів
+    # Фінансова статистика сум закупівель
     amount_sum: int = 0
     amount_min: int | None = None
     amount_max: int | None = None
@@ -36,38 +36,81 @@ class PipelineStats:
         return self.read - self.invalid
 
 
-def parse_all(
-    rows: Iterable[dict[str, Any]],
-    stats: PipelineStats,
-) -> Iterator[Procurement]:
-    """Парсить сирі словники у доменні об'єкти Procurement."""
-    for row in rows:
-        stats.read += 1
-        try:
-            yield ProcurementIn.model_validate(row).to_domain()
-        except ValidationError as exc:
-            stats.invalid += 1
-            logger.debug("skip row: %s errors", exc.error_count())
-            continue
+class Pipeline:
+    def __init__(self, sources: list[Source]) -> None:
+        self._sources = sources
 
+    def run(self) -> PipelineStats:
+        """Головний сценарій запуску конвеєра для всіх джерел з потоковою обробкою."""
+        stats = PipelineStats()
+        seen: set[str] = set()
 
-def deduplicate(
-    items: Iterable[Procurement],
-    stats: PipelineStats,
-) -> Iterator[Procurement]:
-    """Видаляє дублікати закупівель та фіксує їх у статистиці."""
-    seen: set[str] = set()
-    for procurement in items:
-        if procurement.key in seen:
-            stats.duplicates += 1
-            continue
-        seen.add(procurement.key)
-        yield procurement
+        # Обробляємо кожне джерело по черзі
+        for source in self._sources:
+            parsed_items = self._parse_all(source.read(), stats)
 
+            # Фільтруємо дублікати та рахуємо статистику «на льоту» без списків у пам'яті
+            for procurement in self._deduplicate(parsed_items, stats, seen):
+                stats.kept += 1
+                source_name = getattr(source, "name", source.__class__.__name__)
+                stats.by_source[source_name] += 1
 
-def count_by_category(items: Iterable[Procurement]) -> Counter[str]:
-    """Підраховує кількість закупівель за категоріями."""
-    return Counter(procurement.category for procurement in items)
+                # Оновлюємо фінансові метрики та категорії для кожної закупівлі
+                self._process_one(procurement, stats)
+
+        # Розраховуємо середнє значення після завершення потоку
+        if stats.kept > 0 and stats.amount_sum > 0:
+            stats.amount_avg = stats.amount_sum / stats.kept
+
+        return stats
+
+    @staticmethod
+    def _parse_all(
+        rows: Iterable[dict[str, Any]],
+        stats: PipelineStats,
+    ) -> Iterator[Procurement]:
+        """Парсить сирі словники у доменні об'єкти Procurement."""
+        for row in rows:
+            stats.read += 1
+            try:
+                yield ProcurementIn.model_validate(row).to_domain()
+            except ValidationError as exc:
+                stats.invalid += 1
+                logger.debug("skip row: %s errors", exc.error_count())
+                continue
+
+    @staticmethod
+    def _deduplicate(
+        items: Iterable[Procurement],
+        stats: PipelineStats,
+        seen: set[str],
+    ) -> Iterator[Procurement]:
+        """Видаляє дублікати закупівель та фіксує їх у статистиці."""
+        for procurement in items:
+            if procurement.key in seen:
+                stats.duplicates += 1
+                continue
+            seen.add(procurement.key)
+            yield procurement
+
+    @staticmethod
+    def _process_one(procurement: Procurement, stats: PipelineStats) -> None:
+        """Оновлює статистику за категоріями та фінансовими показниками для однієї закупівлі."""
+        if procurement.category:
+            stats.by_category[procurement.category] += 1
+
+        if procurement.amount is not None:
+            stats.amount_min = (
+                procurement.amount
+                if stats.amount_min is None
+                else min(stats.amount_min, procurement.amount)
+            )
+            stats.amount_max = (
+                procurement.amount
+                if stats.amount_max is None
+                else max(stats.amount_max, procurement.amount)
+            )
+            stats.amount_sum += procurement.amount
 
 
 def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:  # noqa: UP047
@@ -77,42 +120,3 @@ def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:  # noqa: 
     it = iter(iterable)
     while batch := tuple(islice(it, n)):
         yield batch
-
-
-def collect(items: Iterable[Procurement], stats: PipelineStats) -> list[Procurement]:
-    """Агрегує список закупівель та розраховує фінансову статистику."""
-    result = list(items)
-    stats.kept = len(result)
-    stats.by_category = count_by_category(result)
-
-    amounts = [p.amount for p in result if p.amount is not None]
-    if amounts:
-        stats.amount_sum = sum(amounts)
-        stats.amount_min = min(amounts)
-        stats.amount_max = max(amounts)
-        stats.amount_avg = stats.amount_sum / len(amounts)
-
-    return result
-
-
-def process_pipeline(rows: Iterable[dict[str, Any]], stats: PipelineStats) -> list[Procurement]:
-    """Повний конвеєр обробки сирих даних."""
-    parsed = parse_all(rows, stats)
-    deduped = deduplicate(parsed, stats)
-    return collect(deduped, stats)
-
-
-def load_procurements(path: Path, stats: PipelineStats | None = None) -> list[Procurement]:
-    """Головний сценарій завантаження, валідації та дедуплікації."""
-    path = Path(path)
-
-    # Якщо stats не передано, створюємо новий екземпляр
-    active_stats = stats if stats is not None else PipelineStats()
-
-    # Вибираємо правильний читач залежно від розширення файлу
-    if path.suffix.lower() == ".jsonl":
-        rows = read_rows_jsonl(path)
-    else:
-        rows = read_rows(path)
-
-    return process_pipeline(rows, active_stats)

@@ -7,6 +7,23 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+class JsonlSource:
+    name = "jsonl"
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    def read(self) -> Iterator[dict[str, Any]]:
+        with self._path.open(encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+
 def read_rows(path: Path) -> Iterator[dict[str, Any]]:
     """Читає звичайний JSON-файл (масив об'єктів) та повертає ітератор словників."""
     path = Path(path)
