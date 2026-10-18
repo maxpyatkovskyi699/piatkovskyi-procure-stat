@@ -41,23 +41,27 @@ class Pipeline:
         self._sources = sources
 
     def run(self) -> PipelineStats:
-        """Головний сценарій запуску конвеєра для всіх джерел."""
+        """Головний сценарій запуску конвеєра для всіх джерел з потоковою обробкою."""
         stats = PipelineStats()
         seen: set[str] = set()
-        all_procurements: list[Procurement] = []
 
         # Обробляємо кожне джерело по черзі
         for source in self._sources:
-            # Читаємо та валідуємо сирі дані з джерела
             parsed_items = self._parse_all(source.read(), stats)
 
-            # Фільтруємо дублікати та рахуємо статистику за джерелами
+            # Фільтруємо дублікати та рахуємо статистику «на льоту» без списків у пам'яті
             for procurement in self._deduplicate(parsed_items, stats, seen):
-                stats.by_source[source.name] += 1
-                all_procurements.append(procurement)
+                stats.kept += 1
+                source_name = getattr(source, "name", source.__class__.__name__)
+                stats.by_source[source_name] += 1
 
-        # Збираємо фінальні фінансові метрики та розподіл за категоріями
-        self._collect(all_procurements, stats)
+                # Оновлюємо фінансові метрики та категорії для кожної закупівлі
+                self._process_one(procurement, stats)
+
+        # Розраховуємо середнє значення після завершення потоку
+        if stats.kept > 0 and stats.amount_sum > 0:
+            stats.amount_avg = stats.amount_sum / stats.kept
+
         return stats
 
     @staticmethod
@@ -90,17 +94,23 @@ class Pipeline:
             yield procurement
 
     @staticmethod
-    def _collect(items: list[Procurement], stats: PipelineStats) -> None:
-        """Агрегує список закупівель та розраховує фінансову статистику й категорії."""
-        stats.kept = len(items)
-        stats.by_category = Counter(p.category for p in items)
+    def _process_one(procurement: Procurement, stats: PipelineStats) -> None:
+        """Оновлює статистику за категоріями та фінансовими показниками для однієї закупівлі."""
+        if procurement.category:
+            stats.by_category[procurement.category] += 1
 
-        amounts = [p.amount for p in items if p.amount is not None]
-        if amounts:
-            stats.amount_sum = sum(amounts)
-            stats.amount_min = min(amounts)
-            stats.amount_max = max(amounts)
-            stats.amount_avg = stats.amount_sum / len(amounts)
+        if procurement.amount is not None:
+            stats.amount_min = (
+                procurement.amount
+                if stats.amount_min is None
+                else min(stats.amount_min, procurement.amount)
+            )
+            stats.amount_max = (
+                procurement.amount
+                if stats.amount_max is None
+                else max(stats.amount_max, procurement.amount)
+            )
+            stats.amount_sum += procurement.amount
 
 
 def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:  # noqa: UP047
