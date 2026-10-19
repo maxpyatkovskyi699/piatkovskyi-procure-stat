@@ -14,10 +14,19 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     data_path: str = "data/procurements.jsonl"
     high_value_threshold: float = 1_000_000.0
+    batch_size: int = 500
+    api_token: str = ""
 
     # Prozorro API Settings
     prozorro_api_base_url: HttpUrl = HttpUrl("https://public-api.prozorro.gov.ua/api/2.5")
     prozorro_timeout: int = 30
+
+
+def mask(secret: str) -> str:
+    """Лишає видимими лише останні чотири символи."""
+    if len(secret) <= 4:
+        return "****"
+    return "*" * (len(secret) - 4) + secret[-4:]
 
 
 settings = Settings()
