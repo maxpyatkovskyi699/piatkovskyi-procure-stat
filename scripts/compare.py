@@ -5,8 +5,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
-from procure_stat.sources.jsonl import JsonlSource
 from procure_stat.services.pipeline import Pipeline
+from procure_stat.sources.jsonl import JsonlSource
 
 PATH = Path("data/large.jsonl")
 

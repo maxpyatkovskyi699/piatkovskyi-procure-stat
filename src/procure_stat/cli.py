@@ -1,17 +1,17 @@
-import logging
 import argparse
+import logging
 import time
 import tracemalloc
 from collections.abc import Callable
 from pathlib import Path
 
+from .config import Settings
+from .errors import ProcureStatError
+from .logging_setup import setup
 from .services.pipeline import Pipeline, PipelineStats
 from .services.ports import Source
 from .sources.csv_file import CsvSource
 from .sources.jsonl import JsonlSource
-from .config import Settings
-from .errors import ProcureStatError
-from .logging_setup import setup
 
 FACTORIES: dict[str, Callable[[Path], Source]] = {".jsonl": JsonlSource, ".csv": CsvSource}
 logger = logging.getLogger(__name__)

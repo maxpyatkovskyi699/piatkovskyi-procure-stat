@@ -1,9 +1,10 @@
 import json
 import logging
-from ..errors import SourceError
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+
+from ..errors import SourceError
 
 logger = logging.getLogger(__name__)
 

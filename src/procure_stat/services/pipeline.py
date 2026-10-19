@@ -47,6 +47,9 @@ class Pipeline:
 
         self.collect(self.stream(stats), stats)
 
+        if stats.kept > 0 and stats.amount_sum > 0:
+            stats.amount_avg = stats.amount_sum / stats.kept
+
         logger.info(
             "done: kept %d, invalid %d, duplicates %d", stats.kept, stats.invalid, stats.duplicates
         )
@@ -54,17 +57,20 @@ class Pipeline:
             logger.warning("skipped %d invalid rows", stats.invalid)
         return stats
 
-    def stream(self, stats: PipelineStats) -> Iterator[Procurement]:
-        """Стрімить та валідує дані з усіх джерел."""
+    def stream(self, stats: PipelineStats) -> Iterator[tuple[str, Procurement]]:
+        """Стрімить та валідує дані з усіх джерел разом із назвою джерела."""
         seen: set[str] = set()
         for source in self._sources:
+            source_name = getattr(source, "name", source.__class__.__name__)
             parsed_items = self._parse_all(source.read(), stats)
-            yield from self._deduplicate(parsed_items, stats, seen)
+            for procurement in self._deduplicate(parsed_items, stats, seen):
+                yield source_name, procurement
 
-    def collect(self, items: Iterable[Procurement], stats: PipelineStats) -> None:
+    def collect(self, items: Iterable[tuple[str, Procurement]], stats: PipelineStats) -> None:
         """Збирає статистику та обробляє кожен елемент."""
-        for procurement in items:
+        for source_name, procurement in items:
             stats.kept += 1
+            stats.by_source[source_name] += 1
             self._process_one(procurement, stats)
 
     @staticmethod
