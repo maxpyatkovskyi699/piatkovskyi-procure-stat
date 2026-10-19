@@ -39,8 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--log-level",
-        default=None,
-        help="рівень логування",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="перекриває значення з .env і змінних середовища",
     )
     return parser
 
