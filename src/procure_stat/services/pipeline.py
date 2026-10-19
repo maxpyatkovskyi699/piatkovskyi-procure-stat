@@ -43,26 +43,29 @@ class Pipeline:
     def run(self) -> PipelineStats:
         """Головний сценарій запуску конвеєра для всіх джерел з потоковою обробкою."""
         stats = PipelineStats()
-        seen: set[str] = set()
+        logger.info("start processing %d source(s)", len(self._sources))
 
-        # Обробляємо кожне джерело по черзі
+        self.collect(self.stream(stats), stats)
+
+        logger.info(
+            "done: kept %d, invalid %d, duplicates %d", stats.kept, stats.invalid, stats.duplicates
+        )
+        if stats.invalid:
+            logger.warning("skipped %d invalid rows", stats.invalid)
+        return stats
+
+    def stream(self, stats: PipelineStats) -> Iterator[Procurement]:
+        """Стрімить та валідує дані з усіх джерел."""
+        seen: set[str] = set()
         for source in self._sources:
             parsed_items = self._parse_all(source.read(), stats)
+            yield from self._deduplicate(parsed_items, stats, seen)
 
-            # Фільтруємо дублікати та рахуємо статистику «на льоту» без списків у пам'яті
-            for procurement in self._deduplicate(parsed_items, stats, seen):
-                stats.kept += 1
-                source_name = getattr(source, "name", source.__class__.__name__)
-                stats.by_source[source_name] += 1
-
-                # Оновлюємо фінансові метрики та категорії для кожної закупівлі
-                self._process_one(procurement, stats)
-
-        # Розраховуємо середнє значення після завершення потоку
-        if stats.kept > 0 and stats.amount_sum > 0:
-            stats.amount_avg = stats.amount_sum / stats.kept
-
-        return stats
+    def collect(self, items: Iterable[Procurement], stats: PipelineStats) -> None:
+        """Збирає статистику та обробляє кожен елемент."""
+        for procurement in items:
+            stats.kept += 1
+            self._process_one(procurement, stats)
 
     @staticmethod
     def _parse_all(
