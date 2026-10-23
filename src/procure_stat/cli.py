@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from .config import Settings
-from .errors import ProcureStatError
+from .errors import ProcureStatError, UnsupportedFormatError
 from .logging_setup import setup
 from .services.pipeline import Pipeline, PipelineStats
 from .services.ports import Source
@@ -21,7 +21,7 @@ def build_source(path: Path) -> Source:
     try:
         factory = FACTORIES[path.suffix.lower()]
     except KeyError:
-        raise SystemExit(f"unsupported file type: {path.suffix}") from None
+        raise UnsupportedFormatError(path.suffix) from None
     return factory(path)
 
 
