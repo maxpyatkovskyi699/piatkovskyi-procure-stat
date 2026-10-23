@@ -30,6 +30,7 @@ class PipelineStats:
     amount_min: int | None = None
     amount_max: int | None = None
     amount_avg: float = 0.0
+    amount_count: int = 0
 
     @property
     def valid(self) -> int:
@@ -47,8 +48,8 @@ class Pipeline:
 
         self.collect(self.stream(stats), stats)
 
-        if stats.kept > 0 and stats.amount_sum > 0:
-            stats.amount_avg = stats.amount_sum / stats.kept
+        if stats.amount_count > 0:
+            stats.amount_avg = stats.amount_sum / stats.amount_count
 
         logger.info(
             "done: kept %d, invalid %d, duplicates %d", stats.kept, stats.invalid, stats.duplicates
@@ -120,6 +121,7 @@ class Pipeline:
                 else max(stats.amount_max, procurement.amount)
             )
             stats.amount_sum += procurement.amount
+            stats.amount_count += 1
 
 
 def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:  # noqa: UP047
