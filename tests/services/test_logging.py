@@ -7,7 +7,7 @@ from procure_stat.config import mask
 from procure_stat.errors import SourceError
 from procure_stat.services.pipeline import Pipeline
 from procure_stat.sources.jsonl import JsonlSource
-from tests.services.test_pipeline import ROW, FakeSource
+from tests.conftest import FakeSource, ROW
 
 
 def test_invalid_rows_are_logged_as_warning(caplog: pytest.LogCaptureFixture) -> None:

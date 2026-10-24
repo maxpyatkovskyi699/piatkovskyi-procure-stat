@@ -65,4 +65,16 @@ forbidden_modules = ["procure_stat.sources", "procure_stat.cli"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --cov=procure_stat --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["src/procure_stat"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == '__main__':",
+    "pragma: no cover",
+    "raise NotImplementedError",
+]
+fail_under = 70

@@ -19,9 +19,9 @@ def normalize_title(raw: str) -> str:
     if not raw or not raw.strip():
         return ""
 
-    # Очищення від крайових пробілів, приведення до нижнього регістру та нормалізація внутрішніх пробілів
+    # Очищення від крайових пробілів та нормалізація внутрішніх пробілів
     cleaned_raw = raw.strip()
-    return " ".join(cleaned_raw.split()).lower()
+    return " ".join(cleaned_raw.split())
 
 
 # Зміна B: друга нова функція (перша літера велика)

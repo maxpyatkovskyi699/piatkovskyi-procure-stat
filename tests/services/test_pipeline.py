@@ -1,4 +1,8 @@
-from procure_stat.services.pipeline import Pipeline
+from collections.abc import Iterator
+from itertools import islice
+from typing import Any
+
+from procure_stat.services.pipeline import Pipeline, PipelineStats
 from tests.conftest import FakeSource
 
 ROW = {
@@ -33,3 +37,26 @@ def test_invalid_amount_is_handled() -> None:
     row = dict(ROW, amount="некоректна_сума")
     stats = Pipeline([FakeSource([row])]).run()
     assert stats.kept == 1 and stats.invalid == 0
+
+
+def test_pipeline_stream_is_lazy(row: dict[str, Any]) -> None:
+    """Перевіряє, що стрічковий конвеєр є лінивим і не читає зайвих записів із джерела."""
+    consumed = 0
+
+    class InfiniteSource:
+        name = "infinite"
+
+        def read(self) -> Iterator[dict[str, Any]]:
+            nonlocal consumed
+            while consumed < 10:
+                consumed += 1
+                unique_row = dict(row, id=str(consumed))
+                yield unique_row
+
+    pipeline = Pipeline([InfiniteSource()])
+    stats = PipelineStats()
+
+    taken = list(islice(pipeline.stream(stats), 2))
+
+    assert len(taken) == 2
+    assert consumed == 2

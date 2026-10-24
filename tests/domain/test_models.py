@@ -1,28 +1,39 @@
+from dataclasses import FrozenInstanceError
+from typing import Any
+
 import pytest
 
 from procure_stat.domain.models import Procurement
 
 
+def make(**overrides: Any) -> Procurement:
+    """Будує валідну закупівлю, замінюючи лише потрібні поля."""
+    data: dict[str, Any] = {
+        "id": "UA-100",
+        "title": "Капітальний ремонт приміщення",
+        "company": "АТ Укрзалізниця",
+        "amount": 496530,
+        "category": "Будівництво",
+    }
+    data.update(overrides)
+    return Procurement(**data)
+
+
 @pytest.mark.parametrize(
-    "procurement_id, title, company, amount, category",
+    "overrides",
     [
-        (" ", "Ноутбуки", "ТОВ Вектор", 100, "IT"),  # порожній id
-        ("UA-1", " ", "ТОВ Вектор", 100, "IT"),  # порожній заголовок
-        ("UA-1", "Ноутбуки", "", 100, "IT"),  # порожня компанія
-        ("UA-1", "Ноутбуки", "ТОВ Вектор", 100, "   "),  # порожня категорія
-        ("UA-1", "Ноутбуки", "ТОВ Вектор", -500, "IT"),  # від'ємна сума
-        ("UA-1", "Ноутбуки", "ТОВ Вектор", 0, "IT"),  # нульова сума
+        {"id": " "},
+        {"title": " "},
+        {"company": ""},
+        {"category": "   "},
+        {"amount": 0},
+        {"amount": -500},
     ],
 )
-def test_invalid_procurement_rejected(
-    procurement_id: str,
-    title: str,
-    company: str,
-    amount: int | None,
-    category: str,
-) -> None:
+def test_invalid_procurement_rejected(overrides: dict[str, Any]) -> None:
+    """Перевіряє, що невалідні параметри закупівлі відхиляються."""
     with pytest.raises(ValueError):
-        Procurement(procurement_id, title, company, amount, category)
+        make(**overrides)
 
 
 def test_frozen_model_is_hashable() -> None:
@@ -34,6 +45,35 @@ def test_frozen_model_is_hashable() -> None:
 
 
 def test_valid_procurement_creation() -> None:
-    p = Procurement("UA-100", "Папір A4", "ТОВ Офіс", 5000, "Канцтовари")
+    """Перевіряє коректність створення валідного об'єкта та роботу його властивостей."""
+    p = make(id="UA-100")
     assert p.key == "UA-100"
-    assert p.is_high_value is False
+
+
+def test_frozen_model_is_immutable() -> None:
+    """Перевіряє, що модель є незмінною (frozen), і спроба зміни поля викликає помилку."""
+    p = make()
+    with pytest.raises(FrozenInstanceError):
+        p.title = "Нова назва"  # type: ignore[misc]
+
+
+def test_procurement_set_deduplication() -> None:
+    """Перевіряє, що дві ідентичні закупівлі зливаються в множині (працює дедублікація)."""
+    a = make()
+    b = make()
+    assert len({a, b}) == 1
+
+
+@pytest.mark.parametrize(
+    ("amount", "expected"),
+    [
+        (None, False),
+        (500_000, False),
+        (999_999, False),
+        (1_000_000, True),
+        (5_000_000, True),
+    ],
+)
+def test_is_high_value(amount: int | None, expected: bool) -> None:
+    """Перевіряє бізнес-логіку визначення великих закупівель."""
+    assert make(amount=amount).is_high_value is expected

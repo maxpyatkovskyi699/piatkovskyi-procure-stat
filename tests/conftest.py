@@ -5,6 +5,13 @@ from typing import Any
 
 import pytest
 
+ROW = {
+    "title": "Капітальний ремонт приміщення",
+    "company": "АТ Укрзалізниця",
+    "amount": "496530",
+    "category": "Будівництво",
+}
+
 
 class FakeSource:
     def __init__(self, rows: list[dict[str, Any]], name: str = "fake") -> None:
