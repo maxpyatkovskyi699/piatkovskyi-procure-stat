@@ -62,3 +62,7 @@ name = "Services do not know adapters"
 type = "forbidden"
 source_modules = ["procure_stat.services"]
 forbidden_modules = ["procure_stat.sources", "procure_stat.cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
