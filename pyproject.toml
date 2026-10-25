@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff", "pytest", "pre-commit", "import-linter", "mypy"]
+dev = ["ruff", "pytest", "pre-commit", "import-linter", "pytest-cov", "mypy"]
 
 [project.scripts]
 procure-stat = "procure_stat.cli:main"
