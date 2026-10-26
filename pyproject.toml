@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff", "pytest", "pre-commit", "import-linter"]
+dev = ["ruff", "pytest", "pre-commit", "import-linter", "pytest-cov", "mypy"]
 
 [project.scripts]
 procure-stat = "procure_stat.cli:main"
@@ -62,3 +62,19 @@ name = "Services do not know adapters"
 type = "forbidden"
 source_modules = ["procure_stat.services"]
 forbidden_modules = ["procure_stat.sources", "procure_stat.cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=procure_stat --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["src/procure_stat"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if __name__ == '__main__':",
+    "pragma: no cover",
+    "raise NotImplementedError",
+]
+fail_under = 70

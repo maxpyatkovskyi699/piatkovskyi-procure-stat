@@ -1,6 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..domain.models import Procurement
+from ..domain.text import normalize_title
 
 
 class ProcurementIn(BaseModel):
@@ -9,9 +10,9 @@ class ProcurementIn(BaseModel):
         str_strip_whitespace=True,
     )
 
-    id: str | None = Field(default=None, min_length=1, alias="procurement_id")
+    id: str | None = Field(default=None, min_length=1, validation_alias="procurement_id")
     title: str = Field(min_length=1, max_length=500)
-    company: str = Field(min_length=1)  # Без аліасу, у JSONL колюч називається "company"
+    company: str = Field(min_length=1)  # Без аліасу, у JSONL ключ називається "company"
     amount: int | None = Field(default=None, gt=0)
     category: str = Field(default="Загальне", min_length=1)
 
@@ -43,6 +44,11 @@ class ProcurementIn(BaseModel):
         if not cleaned:
             raise ValueError("Title cannot be empty after stripping")
         return cleaned
+
+    @field_validator("title")
+    @classmethod
+    def normalize(cls, value: str) -> str:
+        return normalize_title(value)
 
     def to_domain(self) -> Procurement:
         return Procurement(

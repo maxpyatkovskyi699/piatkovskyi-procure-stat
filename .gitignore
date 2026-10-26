@@ -14,3 +14,5 @@ __pycache__/
 data/large.jsonl
 *.jsonl
 data/large*
+.coverage
+htmlcov/
