@@ -49,3 +49,25 @@ def test_environment_beats_default(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     main()
 
     assert levels == ["WARNING"]
+
+
+def test_cli_success_output(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    data_file = tmp_path / "data.jsonl"
+    data_file.write_text(
+        '{"title": "Тестова закупівля", "company": "ТОВ Тест", "amount": 50000}\n', encoding="utf-8"
+    )
+
+    monkeypatch.setattr("sys.argv", ["procure-stat", str(data_file)])
+
+    # Викликаємо функцію запуску CLI
+    try:
+        main()
+    except SystemExit as e:
+        assert e.code == 0
+
+    # Читаємо вивід та перевіряємо статистику
+    captured = capsys.readouterr()
+
+    assert "прочитано" in captured.out.lower() or "успішно" in captured.out.lower()
