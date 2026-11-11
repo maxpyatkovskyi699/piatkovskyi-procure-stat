@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 from pydantic import ValidationError
 
 from ..domain.models import Procurement
-from .ports import Source
+from .ports import ProcurementRepository, Source
 from .schemas import ProcurementIn
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,26 @@ class Pipeline:
         )
         if stats.invalid:
             logger.warning("skipped %d invalid rows", stats.invalid)
+        return stats
+
+    def run_into(self, repository: ProcurementRepository) -> PipelineStats:
+        """Веде потік вакансій/закупівель одразу у сховище через репозиторій та збирає статистику."""
+        stats = PipelineStats()
+        logger.info("start pipeline run_into storage")
+
+        procurements_stream = (procurement for _, procurement in self.stream(stats))
+
+        repository.add_many(procurements_stream)
+
+        if stats.amount_count > 0:
+            stats.amount_avg = stats.amount_sum / stats.amount_count
+
+        logger.info(
+            "done run_into: kept %d, invalid %d, duplicates %d",
+            stats.kept,
+            stats.invalid,
+            stats.duplicates,
+        )
         return stats
 
     def stream(self, stats: PipelineStats) -> Iterator[tuple[str, Procurement]]:

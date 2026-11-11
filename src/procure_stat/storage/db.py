@@ -1,21 +1,22 @@
 from pathlib import Path
-from typing import Any, Callable, cast
-
+from typing import Any, cast
 from sqlalchemy import Engine, create_engine, event
+from sqlalchemy.orm import Session, sessionmaker
 
 
 def make_engine(path: Path, echo: bool = False) -> Engine:
     engine = create_engine(f"sqlite:///{path}", echo=echo, future=True)
 
-    def enable_foreign_keys(
-        dbapi_connection: Any,
-        connection_record: Any,
-    ) -> None:
+    def _enable_foreign_keys(dbapi_connection: Any, connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
-    listener = cast(Callable[..., Any], event.listens_for(engine, "connect"))
-    listener(enable_foreign_keys)
+    listener = cast(Any, event.listens_for(engine, "connect"))
+    listener(_enable_foreign_keys)
 
     return engine
+
+
+def make_session_maker(engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
