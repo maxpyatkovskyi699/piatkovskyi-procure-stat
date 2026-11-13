@@ -1,5 +1,8 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, cast
+
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -20,3 +23,17 @@ def make_engine(path: Path, echo: bool = False) -> Engine:
 
 def make_session_maker(engine: Engine) -> sessionmaker[Session]:
     return sessionmaker(bind=engine, class_=Session, expire_on_commit=False)
+
+
+@contextmanager
+def session_scope(session_maker: sessionmaker[Session]) -> Iterator[Session]:
+    """Контекстний менеджер для безпечного керування сесією (commit / rollback)."""
+    session = session_maker()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
