@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Iterable
 from typing import Any
 
@@ -9,8 +10,9 @@ from procure_stat.storage.models import ProcurementRow
 
 
 def _to_row(procurement: Procurement) -> dict[str, Any]:
+    row_id = procurement.id if procurement and procurement.id else str(uuid.uuid4())
     return {
-        "id": procurement.id,
+        "id": row_id,
         "title": procurement.title,
         "company": procurement.company,
         "amount": float(procurement.amount) if procurement.amount is not None else None,
@@ -27,8 +29,21 @@ class SqlProcurementRepository:
         for row_data in batch:
             stmt = ProcurementRow(**row_data)
             self._session.merge(stmt)
-        self._session.commit()
         return len(batch)
+
+    def add(self, item: Procurement) -> None:
+        """Додати один запис до бази даних (ідемпотентно через merge)."""
+        model = ProcurementRow.from_domain(item)
+        self._session.merge(model)
+
+    def by_company(self, company: str) -> list[Procurement]:
+        """Повертає закупівлі за конкретною компанією-замовником."""
+        rows = (
+            self._session.execute(select(ProcurementRow).where(ProcurementRow.company == company))
+            .scalars()
+            .all()
+        )
+        return [row.to_domain() for row in rows]
 
     def add_many(self, procurements: Iterable[Procurement]) -> int:
         """Записує пачками; повторний запуск не створює дублікатів (через merge)."""

@@ -26,9 +26,9 @@ class PipelineStats:
     by_category: Counter[str] = field(default_factory=Counter)
 
     # Фінансова статистика сум закупівель
-    amount_sum: int = 0
-    amount_min: int | None = None
-    amount_max: int | None = None
+    amount_sum: int | float = 0
+    amount_min: int | float | None = None
+    amount_max: int | float | None = None
     amount_avg: float = 0.0
     amount_count: int = 0
 
