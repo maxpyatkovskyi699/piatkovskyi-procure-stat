@@ -17,6 +17,10 @@ class ConfigError(ProcureStatError):
     """Некоректна конфігурація застосунку."""
 
 
+class StorageError(ProcureStatError):
+    """Проблема зі сховищем: підключення, схема, транзакція."""
+
+
 class UnsupportedFormatError(SourceError):
     """Виникає, коли формат файлу не підтримується."""
 

@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 from pydantic import ValidationError
 
 from ..domain.models import Procurement
-from .ports import Source
+from .ports import ProcurementRepository, Source
 from .schemas import ProcurementIn
 
 logger = logging.getLogger(__name__)
@@ -22,13 +22,14 @@ class PipelineStats:
     invalid: int = 0
     duplicates: int = 0
     kept: int = 0
+    written: int = 0
     by_source: Counter[str] = field(default_factory=Counter)
     by_category: Counter[str] = field(default_factory=Counter)
 
     # Фінансова статистика сум закупівель
-    amount_sum: int = 0
-    amount_min: int | None = None
-    amount_max: int | None = None
+    amount_sum: int | float = 0
+    amount_min: int | float | None = None
+    amount_max: int | float | None = None
     amount_avg: float = 0.0
     amount_count: int = 0
 
@@ -56,6 +57,39 @@ class Pipeline:
         )
         if stats.invalid:
             logger.warning("skipped %d invalid rows", stats.invalid)
+        return stats
+
+    def run_into(self, repository: ProcurementRepository) -> PipelineStats:
+        """Веде потік вакансій/закупівель одразу у сховище через репозиторій та збирає статистику."""
+        stats = PipelineStats()
+        logger.info("start pipeline run_into storage")
+
+        # Отримуємо сирий потік (джерело, об'єкт)
+        raw_stream = self.stream(stats)
+
+        # Ланцюжок, який одночасно збирає статистику (через обгортку) і віддає далі самі об'єкти для репозиторію
+        def instrumented_stream() -> Iterator[Procurement]:
+            for source_name, procurement in raw_stream:
+                stats.kept += 1
+                stats.by_source[source_name] += 1
+                self._process_one(procurement, stats)
+                yield procurement
+
+        # Передаємо оброблений потік у репозиторій (тут можна обрати швидкий метод, якщо він є)
+        if hasattr(repository, "add_many_fast"):
+            stats.written = repository.add_many_fast(instrumented_stream())
+        else:
+            stats.written = repository.add_many(instrumented_stream())
+
+        if stats.amount_count > 0:
+            stats.amount_avg = stats.amount_sum / stats.amount_count
+
+        logger.info(
+            "done run_into: kept %d, invalid %d, duplicates %d",
+            stats.kept,
+            stats.invalid,
+            stats.duplicates,
+        )
         return stats
 
     def stream(self, stats: PipelineStats) -> Iterator[tuple[str, Procurement]]:
