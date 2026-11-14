@@ -63,9 +63,22 @@ class Pipeline:
         stats = PipelineStats()
         logger.info("start pipeline run_into storage")
 
-        procurements_stream = (procurement for _, procurement in self.stream(stats))
+        # Отримуємо сирий потік (джерело, об'єкт)
+        raw_stream = self.stream(stats)
 
-        repository.add_many(procurements_stream)
+        # Ланцюжок, який одночасно збирає статистику (через обгортку) і віддає далі самі об'єкти для репозиторію
+        def instrumented_stream() -> Iterator[Procurement]:
+            for source_name, procurement in raw_stream:
+                stats.kept += 1
+                stats.by_source[source_name] += 1
+                self._process_one(procurement, stats)
+                yield procurement
+
+        # Передаємо оброблений потік у репозиторій (тут можна обрати швидкий метод, якщо він є)
+        if hasattr(repository, "add_many_fast"):
+            repository.add_many_fast(instrumented_stream())
+        else:
+            repository.add_many(instrumented_stream())
 
         if stats.amount_count > 0:
             stats.amount_avg = stats.amount_sum / stats.amount_count

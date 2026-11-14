@@ -12,7 +12,7 @@ from .services.pipeline import Pipeline, PipelineStats
 from .services.ports import Source
 from .sources.csv_file import CsvSource
 from .sources.jsonl import JsonlSource
-from .storage.db import make_engine, make_session_maker
+from .storage.db import make_engine, make_session_maker, session_scope
 from .storage.models import Base
 from .storage.repository import SqlProcurementRepository
 
@@ -29,7 +29,7 @@ def run_with_storage(sources: list[Source], db_path: Path) -> PipelineStats:
     session_maker = make_session_maker(engine)
 
     # Відкриваємо сесію та запускаємо конвеєр у сховище
-    with session_maker() as session:
+    with session_scope(session_maker) as session:
         repository = SqlProcurementRepository(session)
         return Pipeline(sources).run_into(repository)
 
