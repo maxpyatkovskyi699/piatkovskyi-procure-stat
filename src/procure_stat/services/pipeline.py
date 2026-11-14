@@ -22,6 +22,7 @@ class PipelineStats:
     invalid: int = 0
     duplicates: int = 0
     kept: int = 0
+    written: int = 0
     by_source: Counter[str] = field(default_factory=Counter)
     by_category: Counter[str] = field(default_factory=Counter)
 
@@ -76,9 +77,9 @@ class Pipeline:
 
         # Передаємо оброблений потік у репозиторій (тут можна обрати швидкий метод, якщо він є)
         if hasattr(repository, "add_many_fast"):
-            repository.add_many_fast(instrumented_stream())
+            stats.written = repository.add_many_fast(instrumented_stream())
         else:
-            repository.add_many(instrumented_stream())
+            stats.written = repository.add_many(instrumented_stream())
 
         if stats.amount_count > 0:
             stats.amount_avg = stats.amount_sum / stats.amount_count

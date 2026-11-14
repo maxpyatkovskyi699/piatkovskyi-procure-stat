@@ -96,6 +96,7 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.db:
         print(f"Збережено у базу даних: {args.db}")
+        print(f"Записано в БД нових рядків: {stats.written}")
 
     print(f"Прочитано записів: {stats.read}")
     print(f"Відхилено: {stats.invalid}")

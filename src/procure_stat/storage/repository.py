@@ -80,8 +80,8 @@ class SqlProcurementRepository:
         stmt = sqlite_insert(ProcurementRow).values(batch)
         stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
 
-        self._session.execute(stmt)
-        return len(batch)  # або реальна кількість вставлених
+        result = self._session.execute(stmt)
+        return getattr(result, "rowcount", len(batch))
 
     def count(self) -> int:
         result: Any = self._session.execute(select(func.count(ProcurementRow.id))).scalar_one()
