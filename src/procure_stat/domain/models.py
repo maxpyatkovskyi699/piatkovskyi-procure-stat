@@ -8,7 +8,7 @@ class Procurement:
     id: str | None
     title: str
     company: str
-    amount: int | None
+    amount: int | float | None
     category: str
 
     def __post_init__(self) -> None:

@@ -16,3 +16,8 @@ data/large.jsonl
 data/large*
 .coverage
 htmlcov/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+data/
