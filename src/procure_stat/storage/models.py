@@ -34,6 +34,6 @@ class ProcurementRow(Base):
             id=self.id,
             title=self.title,
             company=self.company,
-            amount=int(self.amount) if self.amount is not None else 0,
+            amount=int(self.amount) if self.amount is not None else None,
             category=self.category or "",
         )
